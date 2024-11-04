@@ -1,0 +1,19 @@
+from sklearn.datasets import load_breast_cancer
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+
+# Load the Wisconsin Breast Cancer dataset
+# X contains the features, and y contains the target labels (0 for malignant, 1 for benign)
+data = load_breast_cancer()
+X = data.data
+y = data.target
+
+# Split the data into training and test sets
+# Using 80% of data for training and 20% for testing, with a fixed random state for reproducibility
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Standardize features to have mean = 0 and standard deviation = 1
+# This improves model performance by ensuring all features are on a similar scale
+scaler = StandardScaler()
+X_train = scaler.fit_transform(X_train)  # Fit scaler to training data and transform it
+X_test = scaler.transform(X_test)        # Use the same scaler to transform test data
