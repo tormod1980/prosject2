@@ -1,0 +1,22 @@
+from sklearn.neural_network import MLPClassifier
+
+# Create and train a neural network model using Scikit-Learn's MLPClassifier
+# hidden_layer_sizes defines a network with two hidden layers, each containing 10 neurons
+# activation='relu' specifies the ReLU activation function for hidden layers
+# max_iter=1000 sets the maximum number of iterations for training
+# solver='adam' specifies the Adam optimizer for weight updates
+# random_state=42 ensures reproducibility of the results
+sklearn_nn = MLPClassifier(hidden_layer_sizes=(10, 10), activation='relu', max_iter=1000, solver='adam', random_state=42)
+sklearn_nn.fit(X_train, y_train)  # Fit the model on the training data
+
+# Generate predictions on the training and test sets
+y_pred_sklearn_train = sklearn_nn.predict(X_train)
+y_pred_sklearn_test = sklearn_nn.predict(X_test)
+
+# Calculate and print accuracy on training and test data
+# The .score method computes accuracy by comparing predicted and actual labels
+train_accuracy_sklearn = sklearn_nn.score(X_train, y_train)
+test_accuracy_sklearn = sklearn_nn.score(X_test, y_test)
+
+print(f"Scikit-Learn Train Accuracy: {train_accuracy_sklearn:.2f}")
+print(f"Scikit-Learn Test Accuracy: {test_accuracy_sklearn:.2f}")
