@@ -1,0 +1,15 @@
+# Evaluate Mean Squared Error (MSE) and R-squared (R2) metrics for each activation function
+for activation in activation_functions:
+    print(f"\nEvaluating model with {activation} activation function")
+    
+    # Perform forward pass to predict outputs with the current activation function
+    y_pred_nn = nn.forward(X)
+    
+    # Calculate the Mean Squared Error (MSE) between the predicted and actual values
+    mse_nn = nn.compute_loss(y, y_pred_nn)
+    
+    # Calculate the R-squared (R2) score to evaluate the model's goodness of fit
+    r2_nn = r2_score(y, y_pred_nn)
+    
+    # Print the MSE and R2 score for the current activation function
+    print(f"{activation.capitalize()} MSE: {mse_nn}, R2: {r2_nn}")
