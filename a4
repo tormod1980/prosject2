@@ -1,0 +1,47 @@
+def adagrad(X, y, learning_rate, num_iterations):
+    """
+    Perform Adagrad optimization to minimize the loss function.
+    
+    Parameters:
+        X (ndarray): Feature matrix (m x n), where m is the number of samples and n is the number of features.
+        y (ndarray): Target values (m x 1).
+        learning_rate (float): Initial step size for updating weights.
+        num_iterations (int): Number of iterations to perform.
+        
+    Returns:
+        weights (ndarray): Final weights after optimization.
+        loss_history (list): List of loss values recorded during each iteration.
+    """
+    # Initialize weights and other parameters
+    weights = np.zeros(X.shape[1])  # Weights initialized to zero
+    epsilon = 1e-8  # Small value to prevent division by zero
+    accum_grad = np.zeros(X.shape[1])  # Accumulated squared gradients
+    loss_history = []  # To track the loss over iterations
+
+    # Iterate for the specified number of iterations
+    for _ in range(num_iterations):
+        # Calculate the gradient of the loss function
+        grad = gradient(X, y, weights)
+        # Accumulate the squared gradients
+        accum_grad += grad ** 2
+        # Adjust the learning rate based on accumulated gradients
+        adjusted_lr = learning_rate / (np.sqrt(accum_grad) + epsilon)
+        # Update the weights using the adjusted learning rate
+        weights -= adjusted_lr * grad
+        # Compute the mean squared error loss
+        loss = np.mean((X @ weights - y) ** 2)
+        # Record the loss for this iteration
+        loss_history.append(loss)
+
+    return weights, loss_history
+
+# Execute the Adagrad optimization
+weights_adagrad, loss_history_adagrad = adagrad(X, y, learning_rate, num_iterations)
+
+# Plot the loss history for Adagrad
+plt.plot(loss_history_adagrad, label='Adagrad')  # Loss history for Adagrad optimization
+plt.xlabel('Iteration')
+plt.ylabel('Loss')
+plt.title('Loss over Iterations with Adagrad')
+plt.legend()  # Show legend to identify the Adagrad plot
+plt.show()  # Display the plot
