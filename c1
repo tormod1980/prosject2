@@ -1,0 +1,198 @@
+import numpy as np
+
+class FeedForwardNN:
+    def __init__(self, layer_sizes, activation='sigmoid', weight_init='normal'):
+        """
+        Initialize the neural network with specified layer sizes, activation function, 
+        and weight initialization method.
+        
+        Parameters:
+        layer_sizes (list): List of integers specifying the number of neurons in each layer.
+        activation (str): Activation function to use ('sigmoid', 'relu', or 'leaky_relu').
+        weight_init (str): Method for weight initialization ('normal', 'xavier', 'he').
+        """
+        self.layer_sizes = layer_sizes
+        self.activation = activation
+        self.weights = []  # List to store weight matrices for each layer
+        self.biases = []   # List to store bias vectors for each layer
+        self.initialize_weights_biases(weight_init)  # Initialize weights and biases
+
+    def initialize_weights_biases(self, weight_init):
+        """
+        Initialize weights and biases for each layer using specified method.
+        
+        Parameters:
+        weight_init (str): Method for weight initialization ('normal', 'xavier', 'he').
+        """
+        for i in range(len(self.layer_sizes) - 1):
+            # Initialize weights based on selected method
+            if weight_init == 'normal':
+                weight = np.random.normal(0, 0.1, (self.layer_sizes[i], self.layer_sizes[i + 1]))
+            elif weight_init == 'xavier':
+                limit = np.sqrt(6 / (self.layer_sizes[i] + self.layer_sizes[i + 1]))
+                weight = np.random.uniform(-limit, limit, (self.layer_sizes[i], self.layer_sizes[i + 1]))
+            elif weight_init == 'he':
+                stddev = np.sqrt(2 / self.layer_sizes[i])
+                weight = np.random.normal(0, stddev, (self.layer_sizes[i], self.layer_sizes[i + 1]))
+            
+            # Initialize biases to zero
+            bias = np.zeros((1, self.layer_sizes[i + 1]))
+            self.weights.append(weight)
+            self.biases.append(bias)
+
+    def sigmoid(self, z):
+        """Sigmoid activation function."""
+        return 1 / (1 + np.exp(-z))
+    
+    def sigmoid_derivative(self, z):
+        """Derivative of the sigmoid function, assuming input is sigmoid-activated."""
+        return z * (1 - z)
+
+    def relu(self, z):
+        """ReLU activation function."""
+        return np.maximum(0, z)
+
+    def relu_derivative(self, z):
+        """Derivative of the ReLU function."""
+        return (z > 0).astype(float)
+
+    def leaky_relu(self, z, alpha=0.01):
+        """Leaky ReLU activation function."""
+        return np.where(z > 0, z, alpha * z)
+
+    def leaky_relu_derivative(self, z, alpha=0.01):
+        """Derivative of the Leaky ReLU function."""
+        return np.where(z > 0, 1, alpha)
+
+    def forward(self, X):
+        """
+        Perform forward propagation through the network.
+        
+        Parameters:
+        X (np.ndarray): Input data.
+        
+        Returns:
+        np.ndarray: Output of the network after forward propagation.
+        """
+        self.a = [X]  # Store activations of each layer, starting with input layer
+        for weight, bias in zip(self.weights, self.biases):
+            z = self.a[-1] @ weight + bias  # Linear transformation
+            # Apply the selected activation function
+            if self.activation == 'sigmoid':
+                a = self.sigmoid(z)
+            elif self.activation == 'relu':
+                a = self.relu(z)
+            elif self.activation == 'leaky_relu':
+                a = self.leaky_relu(z)
+            self.a.append(a)  # Append activation to the list
+        return self.a[-1]  # Return the output of the final layer
+
+    def compute_loss(self, y_true, y_pred):
+        """
+        Compute Mean Squared Error (MSE) loss.
+        
+        Parameters:
+        y_true (np.ndarray): True target values.
+        y_pred (np.ndarray): Predicted values from the network.
+        
+        Returns:
+        float: Mean squared error loss.
+        """
+        return np.mean((y_true - y_pred) ** 2)
+
+    def backward(self, X, y):
+        """
+        Perform backward propagation to compute gradients for weights and biases.
+        
+        Parameters:
+        X (np.ndarray): Input data.
+        y (np.ndarray): True target values.
+        
+        Returns:
+        list: Gradients for weights.
+        list: Gradients for biases.
+        """
+        m = y.shape[0]  # Number of samples
+        delta = self.a[-1] - y  # Error for the output layer
+        grads_w = []
+        grads_b = []
+
+        # Calculate gradients for the output layer
+        grads_w.append(self.a[-2].T @ delta / m)
+        grads_b.append(np.sum(delta, axis=0, keepdims=True) / m)
+
+        # Backpropagate through hidden layers
+        for i in range(len(self.layer_sizes) - 2, 0, -1):
+            # Compute delta for the current layer based on the activation function
+            if self.activation == 'sigmoid':
+                delta = (delta @ self.weights[i].T) * self.sigmoid_derivative(self.a[i])
+            elif self.activation == 'relu':
+                delta = (delta @ self.weights[i].T) * self.relu_derivative(self.a[i])
+            elif self.activation == 'leaky_relu':
+                delta = (delta @ self.weights[i].T) * self.leaky_relu_derivative(self.a[i])
+            
+            # Calculate gradients for weights and biases in the current layer
+            grads_w.append(self.a[i - 1].T @ delta / m)
+            grads_b.append(np.sum(delta, axis=0, keepdims=True) / m)
+
+        # Reverse gradients to match the order of layers
+        grads_w.reverse()
+        grads_b.reverse()
+        
+        return grads_w, grads_b
+
+    def update_weights_biases(self, grads_w, grads_b, learning_rate):
+        """
+        Update weights and biases using the computed gradients.
+        
+        Parameters:
+        grads_w (list): Gradients for weights.
+        grads_b (list): Gradients for biases.
+        learning_rate (float): Learning rate for gradient descent.
+        """
+        for i in range(len(self.weights)):
+            self.weights[i] -= learning_rate * grads_w[i]
+            self.biases[i] -= learning_rate * grads_b[i]
+
+    def train(self, X, y, learning_rate, num_epochs):
+        """
+        Train the neural network using the provided data.
+        
+        Parameters:
+        X (np.ndarray): Training data.
+        y (np.ndarray): Target values.
+        learning_rate (float): Learning rate for optimization.
+        num_epochs (int): Number of training epochs.
+        """
+        for epoch in range(num_epochs):
+            # Forward pass
+            y_pred = self.forward(X)
+            # Compute loss
+            loss = self.compute_loss(y, y_pred)
+            # Backward pass to compute gradients
+            grads_w, grads_b = self.backward(X, y)
+            # Update weights and biases
+            self.update_weights_biases(grads_w, grads_b, learning_rate)
+
+            # Print loss every 100 epochs
+            if epoch % 100 == 0:
+                print(f"Epoch {epoch}: Loss = {loss}")
+
+# Example usage with synthetic data
+def f(x, a, b, c):
+    return a * x ** 2 + b * x + c
+
+X = np.random.rand(100, 1)  # 100 samples, 1 feature
+y = f(X.flatten(), 1, 2, 3) + np.random.normal(0, 0.1, 100)  # Quadratic with noise
+
+# Reshape for training
+X = X.reshape(-1, 1)
+y = y.reshape(-1, 1)
+
+# Train the network with different activation functions
+activation_functions = ['sigmoid', 'relu', 'leaky_relu']
+for activation in activation_functions:
+    print(f"\nTraining with activation function: {activation}")
+    layer_sizes = [1, 10, 10, 1]  # Input layer, two hidden layers, output layer
+    nn = FeedForwardNN(layer_sizes, activation=activation, weight_init='he')
+    nn.train(X, y, learning_rate=0.01, num_epochs=1000)
