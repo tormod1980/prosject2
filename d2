@@ -1,0 +1,142 @@
+class FeedForwardNN:
+    def __init__(self, layer_sizes, activation='sigmoid', output_activation='sigmoid', weight_init='normal'):
+        # Initialize the neural network with given layer sizes, activation functions, and weight initialization method
+        self.layer_sizes = layer_sizes
+        self.activation = activation  # Activation function for hidden layers
+        self.output_activation = output_activation  # Activation function for output layer
+        self.weights = []  # List to hold weight matrices for each layer
+        self.biases = []  # List to hold bias vectors for each layer
+        self.initialize_weights_biases(weight_init)  # Initialize weights and biases
+
+    def initialize_weights_biases(self, weight_init):
+        # Initialize weights and biases for each layer based on specified initialization method
+        for i in range(len(self.layer_sizes) - 1):
+            if weight_init == 'normal':
+                # Normal initialization with small random values
+                weight = np.random.normal(0, 0.1, (self.layer_sizes[i], self.layer_sizes[i + 1]))
+            elif weight_init == 'xavier':
+                # Xavier initialization to avoid vanishing/exploding gradients
+                limit = np.sqrt(6 / (self.layer_sizes[i] + self.layer_sizes[i + 1]))
+                weight = np.random.uniform(-limit, limit, (self.layer_sizes[i], self.layer_sizes[i + 1]))
+            elif weight_init == 'he':
+                # He initialization for ReLU layers to keep gradients stable
+                stddev = np.sqrt(2 / self.layer_sizes[i])
+                weight = np.random.normal(0, stddev, (self.layer_sizes[i], self.layer_sizes[i + 1]))
+
+            bias = np.zeros((1, self.layer_sizes[i + 1]))  # Initialize biases as zeros
+            self.weights.append(weight)  # Store weight matrix
+            self.biases.append(bias)  # Store bias vector
+
+    def sigmoid(self, z):
+        # Sigmoid activation function for hidden or output layers
+        return 1 / (1 + np.exp(-z))
+
+    def relu(self, z):
+        # ReLU activation function for hidden layers
+        return np.maximum(0, z)
+
+    def softmax(self, z):
+        # Softmax activation function for output layer (for multi-class classification)
+        exp_z = np.exp(z - np.max(z, axis=1, keepdims=True))  # Shift values for numerical stability
+        return exp_z / np.sum(exp_z, axis=1, keepdims=True)
+
+    def forward(self, X):
+        # Perform a forward pass through the network
+        self.a = [X]  # List to store activations, starting with input layer activations
+        for i, (weight, bias) in enumerate(zip(self.weights, self.biases)):
+            z = self.a[-1] @ weight + bias  # Calculate linear transformation
+            if i < len(self.weights) - 1:  # Apply activation for hidden layers
+                if self.activation == 'sigmoid':
+                    a = self.sigmoid(z)
+                elif self.activation == 'relu':
+                    a = self.relu(z)
+                self.a.append(a)  # Store hidden layer activation
+            else:  # Output layer
+                if self.output_activation == 'sigmoid':
+                    a = self.sigmoid(z)
+                elif self.output_activation == 'softmax':
+                    a = self.softmax(z)
+                self.a.append(a)  # Store output layer activation
+        return self.a[-1]  # Return final output
+
+    def compute_loss(self, y_true, y_pred):
+        # Compute loss based on the output activation function
+        if self.output_activation == 'sigmoid':
+            # Binary Cross-Entropy Loss for sigmoid output
+            return -np.mean(y_true * np.log(y_pred + 1e-15) + (1 - y_true) * np.log(1 - y_pred + 1e-15))
+        elif self.output_activation == 'softmax':
+            # Categorical Cross-Entropy Loss for softmax output
+            return -np.mean(np.sum(y_true * np.log(y_pred + 1e-15), axis=1))
+
+    def backward(self, X, y):
+        # Perform backpropagation to calculate gradients for weights and biases
+        m = y.shape[0]
+        delta = self.a[-1] - y  # Gradient of the loss with respect to output
+        grads_w = []  # List to store weight gradients
+        grads_b = []  # List to store bias gradients
+
+        # Compute gradients for output layer
+        grads_w.append(self.a[-2].T @ delta / m)
+        grads_b.append(np.sum(delta, axis=0, keepdims=True) / m)
+
+        # Compute gradients for hidden layers (backpropagate the error)
+        for i in range(len(self.layer_sizes) - 2, -1, -1):
+            if self.activation == 'sigmoid':
+                delta = delta @ self.weights[i + 1].T * self.sigmoid_derivative(self.a[i + 1])
+            elif self.activation == 'relu':
+                delta = delta @ self.weights[i + 1].T * self.relu_derivative(self.a[i + 1])
+            grads_w.append(self.a[i].T @ delta / m)
+            grads_b.append(np.sum(delta, axis=0, keepdims=True) / m)
+
+        # Reverse gradients lists to match layer order
+        grads_w.reverse()
+        grads_b.reverse()
+
+        return grads_w, grads_b
+
+    def update_weights_biases(self, grads_w, grads_b, learning_rate):
+        # Update weights and biases with calculated gradients and learning rate
+        for i in range(len(self.weights)):
+            self.weights[i] -= learning_rate * grads_w[i]
+            self.biases[i] -= learning_rate * grads_b[i]
+
+    def train(self, X, y, learning_rate, num_epochs):
+        # Train the network using gradient descent for the specified number of epochs
+        for epoch in range(num_epochs):
+            y_pred = self.forward(X)  # Forward pass to get predictions
+            loss = self.compute_loss(y, y_pred)  # Compute loss
+            grads_w, grads_b = self.backward(X, y)  # Backpropagation to get gradients
+            self.update_weights_biases(grads_w, grads_b, learning_rate)  # Update weights and biases
+
+            # Print loss every 100 epochs for monitoring
+            if epoch % 100 == 0:
+                print(f"Epoch {epoch}: Loss = {loss}")
+
+    def predict(self, X):
+        # Predict class labels for input data X
+        y_pred = self.forward(X)
+        return np.argmax(y_pred, axis=1)  # Choose class with highest probability
+
+    def accuracy(self, y_true, y_pred):
+        # Calculate accuracy by comparing true labels and predicted labels
+        return np.mean(y_true == y_pred)
+
+# One-hot encode the target variable for softmax (multi-class classification)
+y_train_one_hot = np.eye(2)[y_train]
+y_test_one_hot = np.eye(2)[y_test]
+
+# Create and train the neural network
+layer_sizes = [X_train.shape[1], 10, 10, 2]  # Define layers: input, hidden, and output
+nn = FeedForwardNN(layer_sizes, activation='relu', output_activation='softmax', weight_init='he')
+nn.train(X_train, y_train_one_hot, learning_rate=0.01, num_epochs=1000)
+
+# Predictions on training and test data
+y_pred_train = nn.predict(X_train)
+y_pred_test = nn.predict(X_test)
+
+# Calculate and print training and test accuracy
+train_accuracy = nn.accuracy(y_train, y_pred_train)
+test_accuracy = nn.accuracy(y_test, y_pred_test)
+
+print(f"Train Accuracy: {train_accuracy:.2f}")
+print(f"Test Accuracy: {test_accuracy:.2f}")
