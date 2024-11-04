@@ -3,165 +3,70 @@ import matplotlib.pyplot as plt
 
 # Sample function: f(x) = a0 + a1*x + a2*x^2
 def f(x, a0, a1, a2):
+    """Compute the value of a quadratic function given coefficients."""
     return a0 + a1 * x + a2 * x**2
 
-# Analytical gradient
+# Function to compute the analytical gradient
 def gradient(X, y, weights):
-    predictions = X @ weights
-    errors = predictions - y
-    grad = (1 / len(y)) * (X.T @ errors)
+    """
+    Calculate the gradient of the loss function.
+    
+    Parameters:
+        X (ndarray): Feature matrix (m x n), where m is the number of samples and n is the number of features.
+        y (ndarray): Target values (m x 1).
+        weights (ndarray): Current weights (n x 1).
+        
+    Returns:
+        grad (ndarray): Gradient of the loss function with respect to the weights.
+    """
+    predictions = X @ weights  # Compute predictions
+    errors = predictions - y    # Calculate the difference between predictions and actual values
+    grad = (1 / len(y)) * (X.T @ errors)  # Compute the average gradient
     return grad
 
-# Gradient Descent
+# Gradient Descent algorithm
 def gradient_descent(X, y, learning_rate, num_iterations):
-    weights = np.zeros(X.shape[1])
-    loss_history = []
+    """
+    Perform gradient descent optimization to minimize the loss function.
+    
+    Parameters:
+        X (ndarray): Feature matrix (m x n).
+        y (ndarray): Target values (m x 1).
+        learning_rate (float): Step size for updating weights.
+        num_iterations (int): Number of iterations to perform.
+        
+    Returns:
+        weights (ndarray): Final weights after optimization.
+        loss_history (list): List of loss values recorded during each iteration.
+    """
+    weights = np.zeros(X.shape[1])  # Initialize weights to zero
+    loss_history = []  # To track the loss over iterations
 
     for _ in range(num_iterations):
-        grad = gradient(X, y, weights)
-        weights -= learning_rate * grad
+        grad = gradient(X, y, weights)  # Calculate the gradient
+        weights -= learning_rate * grad  # Update weights
+        # Compute the mean squared error loss
         loss = np.mean((X @ weights - y) ** 2)
-        loss_history.append(loss)
+        loss_history.append(loss)  # Record the loss
 
     return weights, loss_history
 
-# Example usage
+# Generate sample data
 X = np.column_stack((np.ones(100), np.linspace(-3, 3, 100), np.linspace(-3, 3, 100)**2))
-y = f(X[:, 1], 1, 2, 3) + np.random.normal(0, 0.5, 100)
+y = f(X[:, 1], 1, 2, 3) + np.random.normal(0, 0.5, 100)  # Add some noise to the target values
 
+# Set hyperparameters for gradient descent
 learning_rate = 0.01
 num_iterations = 1000
+
+# Perform gradient descent
 weights, loss_history = gradient_descent(X, y, learning_rate, num_iterations)
 
+# Plot the loss over iterations
 plt.plot(loss_history)
 plt.xlabel('Iteration')
 plt.ylabel('Loss')
-plt.title('Loss over iterations')
-plt.show()
-
-def gradient_descent_momentum(X, y, learning_rate, num_iterations, momentum=0.9):
-    weights = np.zeros(X.shape[1])
-    velocity = np.zeros(X.shape[1])
-    loss_history = []
-
-    for _ in range(num_iterations):
-        grad = gradient(X, y, weights)
-        velocity = momentum * velocity - learning_rate * grad
-        weights += velocity
-        loss = np.mean((X @ weights - y) ** 2)
-        loss_history.append(loss)
-
-    return weights, loss_history
-
-weights_momentum, loss_history_momentum = gradient_descent_momentum(X, y, learning_rate, num_iterations)
-
-plt.plot(loss_history_momentum, label='Momentum')
-plt.plot(loss_history, label='No Momentum')
-plt.xlabel('Iteration')
-plt.ylabel('Loss')
-plt.title('Loss over iterations with Momentum Comparison')
-plt.legend()
-plt.show()
-
-def stochastic_gradient_descent(X, y, learning_rate, num_epochs, batch_size):
-    weights = np.zeros(X.shape[1])
-    loss_history = []
-
-    for epoch in range(num_epochs):
-        indices = np.random.permutation(len(y))
-        X_shuffled = X[indices]
-        y_shuffled = y[indices]
-
-        for start in range(0, len(y), batch_size):
-            end = start + batch_size
-            X_batch = X_shuffled[start:end]
-            y_batch = y_shuffled[start:end]
-            grad = gradient(X_batch, y_batch, weights)
-            weights -= learning_rate * grad
-
-        loss = np.mean((X @ weights - y) ** 2)
-        loss_history.append(loss)
-
-    return weights, loss_history
-
-batch_size = 10
-num_epochs = 100
-weights_sgd, loss_history_sgd = stochastic_gradient_descent(X, y, learning_rate, num_epochs, batch_size)
-
-plt.plot(loss_history_sgd, label='SGD')
-plt.xlabel('Epoch')
-plt.ylabel('Loss')
-plt.title('Loss over epochs with SGD')
-plt.legend()
-plt.show()
-
-def adagrad(X, y, learning_rate, num_iterations):
-    weights = np.zeros(X.shape[1])
-    epsilon = 1e-8
-    accum_grad = np.zeros(X.shape[1])
-    loss_history = []
-
-    for _ in range(num_iterations):
-        grad = gradient(X, y, weights)
-        accum_grad += grad ** 2
-        adjusted_lr = learning_rate / (np.sqrt(accum_grad) + epsilon)
-        weights -= adjusted_lr * grad
-        loss = np.mean((X @ weights - y) ** 2)
-        loss_history.append(loss)
-
-    return weights, loss_history
-
-weights_adagrad, loss_history_adagrad = adagrad(X, y, learning_rate, num_iterations)
-
-plt.plot(loss_history_adagrad, label='Adagrad')
-plt.xlabel('Iteration')
-plt.ylabel('Loss')
-plt.title('Loss over iterations with Adagrad')
-plt.legend()
-plt.show()
-
-def rmsprop(X, y, learning_rate, num_iterations, decay_rate=0.99):
-    weights = np.zeros(X.shape[1])
-    accum_grad = np.zeros(X.shape[1])
-    loss_history = []
-
-    for _ in range(num_iterations):
-        grad = gradient(X, y, weights)
-        accum_grad = decay_rate * accum_grad + (1 - decay_rate) * grad ** 2
-        adjusted_lr = learning_rate / (np.sqrt(accum_grad) + 1e-8)
-        weights -= adjusted_lr * grad
-        loss = np.mean((X @ weights - y) ** 2)
-        loss_history.append(loss)
-
-    return weights, loss_history
-
-def adam(X, y, learning_rate, num_iterations, beta1=0.9, beta2=0.999):
-    weights = np.zeros(X.shape[1])
-    m = np.zeros(X.shape[1])
-    v = np.zeros(X.shape[1])
-    epsilon = 1e-8
-    loss_history = []
-
-    for t in range(1, num_iterations + 1):
-        grad = gradient(X, y, weights)
-        m = beta1 * m + (1 - beta1) * grad
-        v = beta2 * v + (1 - beta2) * grad ** 2
-        m_hat = m / (1 - beta1 ** t)
-        v_hat = v / (1 - beta2 ** t)
-        weights -= learning_rate * m_hat / (np.sqrt(v_hat) + epsilon)
-        loss = np.mean((X @ weights - y) ** 2)
-        loss_history.append(loss)
-
-    return weights, loss_history
-
-weights_rmsprop, loss_history_rmsprop = rmsprop(X, y, learning_rate, num_iterations)
-weights_adam, loss_history_adam = adam(X, y, learning_rate, num_iterations)
-
-plt.plot(loss_history_rmsprop, label='RMSprop')
-plt.plot(loss_history_adam, label='Adam')
-plt.xlabel('Iteration')
-plt.ylabel('Loss')
-plt.title('Loss over iterations with RMSprop and Adam')
-plt.legend()
+plt.title('Loss over Iterations')
+plt.grid(True)  # Optional: add grid for better readability
 plt.show()
 
