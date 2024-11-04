@@ -1,0 +1,24 @@
+
+def gradient_descent_momentum(X, y, learning_rate, num_iterations, momentum=0.9):
+    weights = np.zeros(X.shape[1])
+    velocity = np.zeros(X.shape[1])
+    loss_history = []
+
+    for _ in range(num_iterations):
+        grad = gradient(X, y, weights)
+        velocity = momentum * velocity - learning_rate * grad
+        weights += velocity
+        loss = np.mean((X @ weights - y) ** 2)
+        loss_history.append(loss)
+
+    return weights, loss_history
+
+weights_momentum, loss_history_momentum = gradient_descent_momentum(X, y, learning_rate, num_iterations)
+
+plt.plot(loss_history_momentum, label='Momentum')
+plt.plot(loss_history, label='No Momentum')
+plt.xlabel('Iteration')
+plt.ylabel('Loss')
+plt.title('Loss over iterations with Momentum Comparison')
+plt.legend()
+plt.show()
