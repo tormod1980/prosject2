@@ -1,0 +1,104 @@
+import numpy as np
+import matplotlib.pyplot as plt
+
+def rmsprop(X, y, learning_rate, num_iterations, decay_rate=0.99):
+    """
+    Implements the RMSprop optimization algorithm.
+
+    Parameters:
+    X (np.ndarray): Feature matrix.
+    y (np.ndarray): Target vector.
+    learning_rate (float): Initial learning rate.
+    num_iterations (int): Number of iterations for optimization.
+    decay_rate (float): Decay rate for the moving average of squared gradients.
+
+    Returns:
+    np.ndarray: Optimized weights.
+    list: History of loss values at each iteration.
+    """
+    # Initialize weights and accumulated gradient (squared gradients)
+    weights = np.zeros(X.shape[1])
+    accum_grad = np.zeros(X.shape[1])
+    loss_history = []
+
+    for i in range(num_iterations):
+        # Compute gradient of the loss with respect to weights
+        grad = gradient(X, y, weights)
+        
+        # Update accumulated gradient with decay rate
+        accum_grad = decay_rate * accum_grad + (1 - decay_rate) * grad ** 2
+        
+        # Compute adjusted learning rate for each parameter to avoid large steps
+        adjusted_lr = learning_rate / (np.sqrt(accum_grad) + 1e-8)
+        
+        # Update weights using adjusted learning rate
+        weights -= adjusted_lr * grad
+        
+        # Calculate and store the mean squared error loss
+        loss = np.mean((X @ weights - y) ** 2)
+        loss_history.append(loss)
+
+    return weights, loss_history
+
+
+def adam(X, y, learning_rate, num_iterations, beta1=0.9, beta2=0.999):
+    """
+    Implements the Adam optimization algorithm.
+
+    Parameters:
+    X (np.ndarray): Feature matrix.
+    y (np.ndarray): Target vector.
+    learning_rate (float): Initial learning rate.
+    num_iterations (int): Number of iterations for optimization.
+    beta1 (float): Exponential decay rate for the first moment estimates.
+    beta2 (float): Exponential decay rate for the second moment estimates.
+
+    Returns:
+    np.ndarray: Optimized weights.
+    list: History of loss values at each iteration.
+    """
+    # Initialize weights, first moment (m), second moment (v), and loss history
+    weights = np.zeros(X.shape[1])
+    m = np.zeros(X.shape[1])  # first moment vector
+    v = np.zeros(X.shape[1])  # second moment vector
+    epsilon = 1e-8  # Small value to prevent division by zero
+    loss_history = []
+
+    for t in range(1, num_iterations + 1):
+        # Compute gradient of the loss with respect to weights
+        grad = gradient(X, y, weights)
+        
+        # Update biased first moment estimate
+        m = beta1 * m + (1 - beta1) * grad
+        
+        # Update biased second raw moment estimate
+        v = beta2 * v + (1 - beta2) * grad ** 2
+        
+        # Correct bias in first moment
+        m_hat = m / (1 - beta1 ** t)
+        
+        # Correct bias in second moment
+        v_hat = v / (1 - beta2 ** t)
+        
+        # Update weights using the corrected moment estimates
+        weights -= learning_rate * m_hat / (np.sqrt(v_hat) + epsilon)
+        
+        # Calculate and store the mean squared error loss
+        loss = np.mean((X @ weights - y) ** 2)
+        loss_history.append(loss)
+
+    return weights, loss_history
+
+
+# Example usage and comparison of RMSprop and Adam optimization algorithms
+weights_rmsprop, loss_history_rmsprop = rmsprop(X, y, learning_rate, num_iterations)
+weights_adam, loss_history_adam = adam(X, y, learning_rate, num_iterations)
+
+# Plotting the loss history for both optimizers
+plt.plot(loss_history_rmsprop, label='RMSprop')
+plt.plot(loss_history_adam, label='Adam')
+plt.xlabel('Iteration')
+plt.ylabel('Loss')
+plt.title('Loss over iterations with RMSprop and Adam')
+plt.legend()
+plt.show()
