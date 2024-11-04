@@ -1,24 +1,43 @@
-
 def gradient_descent_momentum(X, y, learning_rate, num_iterations, momentum=0.9):
-    weights = np.zeros(X.shape[1])
-    velocity = np.zeros(X.shape[1])
-    loss_history = []
+    """
+    Perform gradient descent with momentum to minimize the loss function.
+    
+    Parameters:
+        X (ndarray): Feature matrix (m x n), where m is the number of samples and n is the number of features.
+        y (ndarray): Target values (m x 1).
+        learning_rate (float): Step size for updating weights.
+        num_iterations (int): Number of iterations to perform.
+        momentum (float): Momentum factor to help accelerate gradient descent (default is 0.9).
+        
+    Returns:
+        weights (ndarray): Final weights after optimization.
+        loss_history (list): List of loss values recorded during each iteration.
+    """
+    # Initialize weights and velocity
+    weights = np.zeros(X.shape[1])  # Weights are initialized to zero
+    velocity = np.zeros(X.shape[1])  # Initialize velocity to zero
+    loss_history = []  # To track the loss over iterations
 
+    # Iterate for a specified number of iterations
     for _ in range(num_iterations):
-        grad = gradient(X, y, weights)
-        velocity = momentum * velocity - learning_rate * grad
-        weights += velocity
+        grad = gradient(X, y, weights)  # Calculate the gradient of the loss function
+        # Update the velocity with momentum
+        velocity = momentum * velocity - learning_rate * grad  # Update velocity
+        weights += velocity  # Update weights using the velocity
+        # Compute the mean squared error loss
         loss = np.mean((X @ weights - y) ** 2)
-        loss_history.append(loss)
+        loss_history.append(loss)  # Record the loss for this iteration
 
     return weights, loss_history
 
+# Execute gradient descent with momentum
 weights_momentum, loss_history_momentum = gradient_descent_momentum(X, y, learning_rate, num_iterations)
 
-plt.plot(loss_history_momentum, label='Momentum')
-plt.plot(loss_history, label='No Momentum')
+# Plot the loss history for comparison
+plt.plot(loss_history_momentum, label='Momentum')  # Loss history for momentum
+plt.plot(loss_history, label='No Momentum')  # Loss history for regular gradient descent
 plt.xlabel('Iteration')
 plt.ylabel('Loss')
-plt.title('Loss over iterations with Momentum Comparison')
-plt.legend()
-plt.show()
+plt.title('Loss over Iterations with Momentum Comparison')
+plt.legend()  # Show legend to distinguish between the two plots
+plt.show()  # Display the plot
