@@ -1,0 +1,57 @@
+def stochastic_gradient_descent(X, y, learning_rate, num_epochs, batch_size):
+    """
+    Perform stochastic gradient descent to minimize the loss function.
+    
+    Parameters:
+        X (ndarray): Feature matrix (m x n), where m is the number of samples and n is the number of features.
+        y (ndarray): Target values (m x 1).
+        learning_rate (float): Step size for updating weights.
+        num_epochs (int): Number of complete passes through the dataset.
+        batch_size (int): Number of samples to use in each mini-batch update.
+        
+    Returns:
+        weights (ndarray): Final weights after optimization.
+        loss_history (list): List of loss values recorded at the end of each epoch.
+    """
+    # Initialize weights and a list to track loss over epochs
+    weights = np.zeros(X.shape[1])  # Weights are initialized to zero
+    loss_history = []  # To track the loss for each epoch
+
+    # Iterate over the specified number of epochs
+    for epoch in range(num_epochs):
+        # Shuffle the dataset at the beginning of each epoch
+        indices = np.random.permutation(len(y))  # Randomly permute indices
+        X_shuffled = X[indices]  # Shuffle features
+        y_shuffled = y[indices]  # Shuffle target values
+
+        # Iterate over mini-batches
+        for start in range(0, len(y), batch_size):
+            end = start + batch_size  # Define the end of the current batch
+            # Extract the current mini-batch
+            X_batch = X_shuffled[start:end]
+            y_batch = y_shuffled[start:end]
+            # Calculate the gradient for the current mini-batch
+            grad = gradient(X_batch, y_batch, weights)
+            # Update weights using the calculated gradient
+            weights -= learning_rate * grad
+
+        # Compute the mean squared error loss after the epoch
+        loss = np.mean((X @ weights - y) ** 2)
+        loss_history.append(loss)  # Record the loss for this epoch
+
+    return weights, loss_history
+
+# Set hyperparameters for SGD
+batch_size = 10
+num_epochs = 100
+
+# Execute stochastic gradient descent
+weights_sgd, loss_history_sgd = stochastic_gradient_descent(X, y, learning_rate, num_epochs, batch_size)
+
+# Plot the loss history for SGD
+plt.plot(loss_history_sgd, label='SGD')  # Loss history for stochastic gradient descent
+plt.xlabel('Epoch')
+plt.ylabel('Loss')
+plt.title('Loss over Epochs with SGD')
+plt.legend()  # Show legend to identify the SGD plot
+plt.show()  # Display the plot
